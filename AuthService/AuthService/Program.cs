@@ -1,6 +1,9 @@
+using System.Text;
 using AuthService.Models;
 using AuthService.Settings;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,10 +22,33 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     );
 
 
-builder.Services.AddAuthentication("cookie").AddCookie("cookie", o =>
-{
-    o.LoginPath = "/login";
-});
+builder.Services.AddAuthentication("jwt")
+    .AddJwtBearer("jwt",options =>
+    {
+        options.Events = new JwtBearerEvents()
+        {
+            OnMessageReceived = (ctx) =>
+            {
+                if (ctx.Request.Query.ContainsKey("t"))
+                {
+                    ctx.Token = ctx.Request.Query["t"];
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "https://localhost:7018",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Secret"]))
+        };
+        options.MapInboundClaims = false;
+    });
+
 builder.Services.AddAuthorization();
 
 // Add services to the container.

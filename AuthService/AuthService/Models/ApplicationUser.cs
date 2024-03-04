@@ -7,8 +7,6 @@ namespace AuthService.Models;
 [CollectionName("Users")]
 public class ApplicationUser : MongoIdentityUser<ObjectId>
 {
-    public Guid PublicId { get; } = Guid.NewGuid();
-
     public ApplicationUser() : base()
     {
     }
