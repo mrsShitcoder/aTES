@@ -27,7 +27,7 @@ public class RegisterController : Controller
             IdentityResult identityResult = await _userManager.CreateAsync(appUser, regInfo.Password);
             if (identityResult.Succeeded)
             {
-                await _userManager.AddToRoleAsync(appUser, "Default");
+                await _userManager.AddToRoleAsync(appUser, "Worker");
                 ViewBag.Message = "Successfully registered";
             }
             else

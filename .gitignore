@@ -16,4 +16,5 @@
 *.nupkg
 packages/
 **/wwwroot
+key
 
