@@ -2,10 +2,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using TaskTracker;
+using TaskTracker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<DbService>();
 
 var jwksClient = new KeyClient(new HttpClient());
 SecurityKey signingKey = await jwksClient.GetSigningKeyAsync();
