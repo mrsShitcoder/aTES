@@ -19,6 +19,7 @@ public class AccountingService
         eventBus.Subscribe<UserCreatedEvent>(OnUserCreated);
         eventBus.Subscribe<TaskCreatedEvent>(OnTaskCreated);
         eventBus.Subscribe<TaskCompletedEvent>(OnTaskCompleted);
+        eventBus.Subscribe<TaskReassignedEvent>(OnTaskReassigned);
     }
 
     public async Task OnUserCreated(UserCreatedEvent consumedEvent)
@@ -103,6 +104,31 @@ public class AccountingService
             AccountId = account.AccountId,
             Amount = task.CompletePrice,
             EventType = EventType.Credit
+        });
+    }
+
+    public async Task OnTaskReassigned(TaskReassignedEvent consumedEvent)
+    {
+        var account = await _dbService.GetAccountAsync(consumedEvent.AssigneeId);
+
+        if (account == null)
+        {
+            throw new Exception($"Account {consumedEvent.AssigneeId} not found");
+        }
+
+        var task = await _dbService.GetTaskAsync(consumedEvent.TaskId);
+        
+        if (task == null)
+        {
+            throw new Exception($"Task {consumedEvent.TaskId} not found");
+        }
+
+        await _dbService.UpdateAccountBalance(account.AccountId, account.Balance - task.AssignPrice);
+        await _dbService.UpdateAuditLog(new AuditRecord
+        {
+            AccountId = account.AccountId,
+            Amount = task.AssignPrice,
+            EventType = EventType.Withdraw
         });
     }
 
