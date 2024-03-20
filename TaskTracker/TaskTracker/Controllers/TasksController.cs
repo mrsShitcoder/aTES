@@ -20,9 +20,9 @@ public class TasksController : Controller
     }
 
     [Route("tasks/create")]
-    public async Task<IActionResult> CreateTask([FromBody] string description)
+    public async Task<IActionResult> CreateTask([FromBody] string title, [FromBody] string description)
     {
-        var taskData = await _taskTracker.CreateTask(description);
+        var taskData = await _taskTracker.CreateTask(title, description);
         return Ok(new
         {
             task = taskData

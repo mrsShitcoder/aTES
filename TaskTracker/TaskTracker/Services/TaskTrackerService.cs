@@ -19,7 +19,7 @@ public class TaskTrackerService
         eventBus.Subscribe<UserCreatedEvent>(OnUserCreatedAsync);
     }
 
-    public async Task<TaskData> CreateTask(string description)
+    public async Task<TaskData> CreateTask(string title, string description)
     {
         var assignees = await _dbService.GetUsersByRole("Worker");
         if (assignees == null)
@@ -34,6 +34,7 @@ public class TaskTrackerService
         var newTask = new TaskData
         {
             Id = ObjectId.GenerateNewId().ToString(),
+            Title = title,
             AssigneeId = assigneeId,
             Description = description,
             Status = TaskStatus.Assigned
@@ -44,6 +45,7 @@ public class TaskTrackerService
         var kafkaEvent = new TaskCreatedEvent
         {
             Id = newTask.Id,
+            Title = newTask.Title,
             AssigneeId = newTask.AssigneeId
         };
 
@@ -75,6 +77,7 @@ public class TaskTrackerService
         var taskCompleted = new TaskCompletedEvent
         {
             Id = task.Id,
+            Title = task.Title,
             AssigneeId = task.AssigneeId
         };
 
