@@ -6,4 +6,6 @@ public class TaskCompletedEvent
     
     public string Title { get; set; }
     public string AssigneeId { get; set; }
+    
+    public DateTime CompletedTime { get; set; }
 }

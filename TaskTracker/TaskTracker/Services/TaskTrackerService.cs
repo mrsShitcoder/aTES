@@ -37,7 +37,8 @@ public class TaskTrackerService
             Title = title,
             AssigneeId = assigneeId,
             Description = description,
-            Status = TaskStatus.Assigned
+            Status = TaskStatus.Assigned,
+            CreatedTime = DateTime.Now
         };
 
         await _dbService.AddTaskAsync(newTask);
@@ -67,7 +68,10 @@ public class TaskTrackerService
             throw new Exception($"Task {taskId} is already completed");
         }
 
-        var result = await _dbService.ChangeTaskStatusAsync(taskId, TaskStatus.Completed);
+        task.Status = TaskStatus.Completed;
+        task.CompletedTime = DateTime.Now;
+
+        var result = await _dbService.UpdateTaskAsync(task);
 
         if (result.ModifiedCount == 0)
         {
@@ -81,7 +85,7 @@ public class TaskTrackerService
             AssigneeId = task.AssigneeId
         };
 
-        await _kafkaProducer.ProduceAsync("task-stream", JsonSerializer.Serialize(taskCompleted));
+        await _kafkaProducer.ProduceAsync("task-events", JsonSerializer.Serialize(taskCompleted));
     }
 
     public async Task<List<TaskData>> GetTasksByAssignee(string assigneeId)
@@ -104,5 +108,36 @@ public class TaskTrackerService
             Role = consumedEvent.Role
         };
         await _dbService.AddUserAsync(newUser);
+    }
+
+    public async Task<List<TaskData>> ShuffleTasks()
+    {
+        var tasks = await _dbService.GetAssignedTasks();
+
+        var assignees = await _dbService.GetUsersByRole("Worker");
+
+        if (assignees == null || assignees.Count == 0)
+        {
+            throw new Exception($"No workers to assign tasks");
+        }
+
+        var rand = new Random();
+        foreach (var task in tasks)
+        {
+            var randomInd = rand.Next(0, assignees.Count - 1);
+            string assigneeId = assignees[randomInd].Id;
+            task.AssigneeId = assigneeId;
+            await _dbService.UpdateTaskAsync(task);
+
+            var taskReassigned = new TaskReassignedEvent
+            {
+                TaskId = task.Id,
+                AssigneeId = task.AssigneeId
+            };
+
+            await _kafkaProducer.ProduceAsync("task-events", JsonSerializer.Serialize(taskReassigned));
+        }
+
+        return await _dbService.GetAssignedTasks();
     }
 }

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TaskTracker.Services;
@@ -9,13 +10,32 @@ public class TasksController : Controller
     private readonly TaskTrackerService _taskTracker;
 
     [Route("tasks/all")]
-    public async Task<IActionResult> GetTaskList([FromBody] string userId)
+    public async Task<IActionResult> GetTaskList()
     {
+        var userId = HttpContext.User.Claims.FirstOrDefault(claim => claim.Type == JwtRegisteredClaimNames.Sub)
+            ?.ToString();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+        
         var taskList = await _taskTracker.GetTasksByAssignee(userId);
 
         return Ok(new
         {
             tasks = taskList
+        });
+    }
+
+    [Route("tasks/shuffle")]
+    [Authorize(Roles = "Manager, Admin")]
+    public async Task<IActionResult> ShuffleTasks()
+    {
+        var reshuffled = await _taskTracker.ShuffleTasks();
+
+        return Ok(new
+        {
+            tasks = reshuffled
         });
     }
 
