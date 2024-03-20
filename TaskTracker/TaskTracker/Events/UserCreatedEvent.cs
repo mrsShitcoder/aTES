@@ -1,4 +1,4 @@
-namespace AuthService.Events;
+namespace TaskTracker.Events;
 
 public class UserCreatedEvent
 {

@@ -31,14 +31,19 @@ public class RegisterController : Controller
             {
                 await _userManager.AddToRoleAsync(appUser, "Worker");
                 ViewBag.Message = "Successfully registered";
-                var userCreated = new UserCreatedEvent
+
+                var msg = new KafkaMessage<UserCreatedEvent>
                 {
-                    UserId = appUser.Id.ToString(),
-                    Email = appUser.Email,
-                    Name = appUser.UserName,
-                    Roles = new[] { "Worker" }
+                    data = new UserCreatedEvent
+                    {
+                        UserId = appUser.Id.ToString(),
+                        Email = appUser.Email,
+                        Name = appUser.UserName,
+                        Role = "Worker"
+                    }
                 };
-                await _kafkaProducer.ProduceAsync("user-stream", JsonSerializer.Serialize(userCreated));
+                
+                await _kafkaProducer.ProduceAsync("user-stream", JsonSerializer.Serialize(msg));
             }
             else
             {

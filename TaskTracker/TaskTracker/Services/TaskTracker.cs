@@ -11,11 +11,12 @@ public class TaskTracker
     private readonly DbService _dbService;
 
     private readonly KafkaProducer _kafkaProducer;
-
-    public TaskTracker(DbService dbService, KafkaProducer kafkaProducer)
+    
+    public TaskTracker(DbService dbService, KafkaProducer kafkaProducer, EventBus eventBus)
     {
         _dbService = dbService;
         _kafkaProducer = kafkaProducer;
+        eventBus.Subscribe<UserCreatedEvent>(OnUserCreatedAsync);
     }
 
     public async Task CreateTask(string description)
@@ -87,5 +88,16 @@ public class TaskTracker
         }
 
         return tasks;
+    }
+
+    public async Task OnUserCreatedAsync(UserCreatedEvent consumedEvent)
+    {
+        var newUser = new User
+        {
+            Id = consumedEvent.UserId,
+            Name = consumedEvent.Name,
+            Role = consumedEvent.Role
+        };
+        await _dbService.AddUserAsync(newUser);
     }
 }
