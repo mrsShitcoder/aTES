@@ -6,20 +6,20 @@ using TaskStatus = TaskTracker.Models.TaskStatus;
 
 namespace TaskTracker.Services;
 
-public class TaskTracker
+public class TaskTrackerService
 {
     private readonly DbService _dbService;
 
     private readonly KafkaProducer _kafkaProducer;
     
-    public TaskTracker(DbService dbService, KafkaProducer kafkaProducer, EventBus eventBus)
+    public TaskTrackerService(DbService dbService, KafkaProducer kafkaProducer, EventBus eventBus)
     {
         _dbService = dbService;
         _kafkaProducer = kafkaProducer;
         eventBus.Subscribe<UserCreatedEvent>(OnUserCreatedAsync);
     }
 
-    public async Task CreateTask(string description)
+    public async Task<TaskData> CreateTask(string description)
     {
         var assignees = await _dbService.GetUsersByRole("Worker");
         if (assignees == null)
@@ -48,6 +48,8 @@ public class TaskTracker
         };
 
         await _kafkaProducer.ProduceAsync("task-stream", JsonSerializer.Serialize(kafkaEvent));
+
+        return newTask;
     }
 
     public async Task CompleteTask(string taskId)
