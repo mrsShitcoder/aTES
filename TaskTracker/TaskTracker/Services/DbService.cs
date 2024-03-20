@@ -31,6 +31,11 @@ public class DbService
         return await _users.Find(user => user.Id == userId).FirstOrDefaultAsync();
     }
 
+    public async Task<List<User>?> GetUsersByRole(string role)
+    {
+        return await _users.Find(user => user.Role == role).ToListAsync();
+    }
+
     public async Task AddUserAsync(User user)
     {
         await _users.InsertOneAsync(user);
@@ -41,25 +46,19 @@ public class DbService
         await _tasks.InsertOneAsync(taskData);
     }
 
-    public async Task<TaskData> GetMyTasksAsync(string userId)
+    public async Task<TaskData?> GetTaskAsync(string taskId)
     {
-        return await _tasks.Find(data => data.AssigneeId == userId).FirstOrDefaultAsync();
+        return await _tasks.Find(data => data.Id == taskId).FirstOrDefaultAsync();
     }
 
-    public async Task AssignTaskAsync(string taskId, string userId)
+    public async Task<List<TaskData>?> GetTasks(string assigneeId)
     {
-        User? user = await GetUserAsync(userId);
-        if (user == null)
-        {
-            throw new Exception($"Cannot assign task. User {userId} not found");
-        }
-        var assignTask = Builders<TaskData>.Update.Set(data => data.AssigneeId, userId);
-        await _tasks.UpdateOneAsync(data => data.Id == taskId, assignTask);
+        return await _tasks.Find(data => data.AssigneeId == assigneeId).ToListAsync();
     }
 
-    public async Task ChangeTaskStatusAsync(string taskId, TaskStatus status)
+    public async Task<UpdateResult> ChangeTaskStatusAsync(string taskId, TaskStatus status)
     {
         var changeStatus = Builders<TaskData>.Update.Set(data => data.Status, status);
-        await _tasks.UpdateOneAsync(data => data.Id == taskId, changeStatus);
+        return await _tasks.UpdateOneAsync(data => data.Id == taskId, changeStatus);
     }
 }

@@ -1,10 +1,13 @@
 using System.Security.Claims;
+using System.Text.Json;
+using AuthService.Events;
 using AuthService.Models;
 using AuthService.Settings;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Bson;
+using AuthService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,8 @@ if (mongoDbSettings is null)
 {
     throw new Exception($"The {nameof(MongoDbConfig)} section is missing from the configuration file.");
 }
+
+builder.Services.AddSingleton(new KafkaProducer("localhost:9092"));
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     .AddMongoDbStores<ApplicationUser, ApplicationRole, ObjectId>
@@ -85,8 +90,20 @@ using (var scope = app.Services.CreateScope())
     var config = app.Configuration.GetSection("AdministrationConfig").Get<AdministrationConfig>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     var admin = new ApplicationUser(config.UserName, config.Email);
-    await userManager.CreateAsync(admin, config.Password);
+    var result = await userManager.CreateAsync(admin, config.Password);
     await userManager.AddToRoleAsync(admin, "Admin");
+    if (result.Succeeded)
+    {
+        var adminCreated = new UserCreatedEvent
+        {
+            UserId = admin.Id.ToString(),
+            Name = config.UserName,
+            Email = config.Email,
+            Roles = new[] { "Admin" }
+        };
+        var kafkaProducer = scope.ServiceProvider.GetRequiredService<KafkaProducer>();
+        await kafkaProducer.ProduceAsync("user-stream", JsonSerializer.Serialize(adminCreated));
+    }
 }
 
 // Configure the HTTP request pipeline.

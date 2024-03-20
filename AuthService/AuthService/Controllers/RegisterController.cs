@@ -1,6 +1,9 @@
+using System.Text.Json;
+using AuthService.Events;
 using AuthService.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using AuthService.Services;
 
 namespace AuthService.Controllers;
 
@@ -8,12 +11,11 @@ namespace AuthService.Controllers;
 public class RegisterController : Controller
 {
     private UserManager<ApplicationUser> _userManager;
-    private RoleManager<ApplicationRole> _roleManager;
-
-    public RegisterController(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
+    private KafkaProducer _kafkaProducer;
+    public RegisterController(UserManager<ApplicationUser> userManager, KafkaProducer kafkaProducer)
     {
         _userManager = userManager;
-        _roleManager = roleManager;
+        _kafkaProducer = kafkaProducer;
     }
     
     [HttpGet]
@@ -29,6 +31,14 @@ public class RegisterController : Controller
             {
                 await _userManager.AddToRoleAsync(appUser, "Worker");
                 ViewBag.Message = "Successfully registered";
+                var userCreated = new UserCreatedEvent
+                {
+                    UserId = appUser.Id.ToString(),
+                    Email = appUser.Email,
+                    Name = appUser.UserName,
+                    Roles = new[] { "Worker" }
+                };
+                await _kafkaProducer.ProduceAsync("user-stream", JsonSerializer.Serialize(userCreated));
             }
             else
             {

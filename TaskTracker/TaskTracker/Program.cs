@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Confluent.Kafka;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using TaskTracker;
@@ -51,6 +52,25 @@ builder.Services.AddAuthentication("jwt").AddJwtBearer("jwt", options =>
         }
     };
 });
+
+string kafkaConnection = builder.Configuration.GetConnectionString("KafkaConnection");
+
+builder.Services.AddSingleton(new KafkaProducer(kafkaConnection));
+
+var consumerConfig = new ConsumerConfig
+{
+    BootstrapServers = kafkaConnection,
+    GroupId = "users-processing-group",
+    SecurityProtocol = SecurityProtocol.Plaintext,
+    EnableAutoCommit = false,
+    StatisticsIntervalMs = 5000,
+    SessionTimeoutMs = 6000,
+    AutoOffsetReset = AutoOffsetReset.Earliest,
+    EnablePartitionEof = true
+};
+
+builder.Services.AddSingleton(consumerConfig);
+builder.Services.AddHostedService<KafkaConsumerService>();
 
 var app = builder.Build();
 
