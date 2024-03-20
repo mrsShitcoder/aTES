@@ -99,7 +99,7 @@ using (var scope = app.Services.CreateScope())
             UserId = admin.Id.ToString(),
             Name = config.UserName,
             Email = config.Email,
-            Roles = new[] { "Admin" }
+            Role = "Admin"
         };
         var kafkaProducer = scope.ServiceProvider.GetRequiredService<KafkaProducer>();
         await kafkaProducer.ProduceAsync("user-stream", JsonSerializer.Serialize(adminCreated));

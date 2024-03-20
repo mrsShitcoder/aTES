@@ -6,4 +6,6 @@ public class TaskCreatedEvent
     
     public string Title { get; set; }
     public string AssigneeId { get; set; }
+    
+    public DateTime CreatedTime { get; set; }
 }

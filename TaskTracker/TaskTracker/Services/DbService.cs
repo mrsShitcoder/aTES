@@ -56,9 +56,14 @@ public class DbService
         return await _tasks.Find(data => data.AssigneeId == assigneeId).ToListAsync();
     }
 
-    public async Task<UpdateResult> ChangeTaskStatusAsync(string taskId, TaskStatus status)
+    public async Task<UpdateResult> UpdateTaskAsync(TaskData taskData)
     {
-        var changeStatus = Builders<TaskData>.Update.Set(data => data.Status, status);
-        return await _tasks.UpdateOneAsync(data => data.Id == taskId, changeStatus);
+        var changeStatus = Builders<TaskData>.Update.Set(data => data, taskData);
+        return await _tasks.UpdateOneAsync(data => data.Id == taskData.Id, changeStatus);
+    }
+
+    public async Task<List<TaskData>> GetAssignedTasks()
+    {
+        return await _tasks.Find(data => data.Status == TaskStatus.Assigned).ToListAsync();
     }
 }
