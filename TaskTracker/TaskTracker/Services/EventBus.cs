@@ -2,7 +2,7 @@ namespace TaskTracker.Services;
 
 public class EventBus
 {
-    private Dictionary<Type, List<Delegate>> _listeners;
+    private Dictionary<Type, List<Delegate>> _listeners = new();
 
     public void Subscribe<TEvent>(Func<TEvent, Task> action)
     {
