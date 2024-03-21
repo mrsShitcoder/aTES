@@ -63,7 +63,8 @@ public class AccountingService
         {
             AccountId = account.AccountId,
             Amount = assignPrice,
-            EventType = EventType.Withdraw
+            EventType = EventType.Withdrawal,
+            CreatedAt = DateTime.Now
         });
 
         var eventToProduce = new TaskPriceUpdatedEvent
@@ -103,7 +104,8 @@ public class AccountingService
         {
             AccountId = account.AccountId,
             Amount = task.CompletePrice,
-            EventType = EventType.Credit
+            EventType = EventType.Credit,
+            CreatedAt = DateTime.Now
         });
     }
 
@@ -128,7 +130,8 @@ public class AccountingService
         {
             AccountId = account.AccountId,
             Amount = task.AssignPrice,
-            EventType = EventType.Withdraw
+            EventType = EventType.Withdrawal,
+            CreatedAt = DateTime.Now
         });
     }
 
@@ -155,23 +158,24 @@ public class AccountingService
         return accounts;
     }
 
-    public async Task<int> GetRevenueForPeriod(DateTime from, DateTime to)
+    public async Task<int> GetRevenueForPeriod(DateTime fromDate, DateTime toDate)
     {
-        var assignedTasks = await _dbService.GetAssignedTasksForPeriod(from, to);
-        var completedTasks = await _dbService.GetCompletedTasksForPeriod(from, to);
-        int assignedTaskFee = 0;
-        int completedTaskAmount = 0;
+        int revenue = 0;
 
-        foreach (var task in assignedTasks)
+        var records = await _dbService.GetRecordsForPeriod(fromDate, toDate);
+
+        foreach (var record in records)
         {
-            assignedTaskFee += task.AssignPrice;
+            if (record.EventType == EventType.Credit)
+            {
+                revenue -= record.Amount;
+            }
+            else if (record.EventType == EventType.Withdrawal)
+            {
+                revenue += record.Amount;
+            }
         }
 
-        foreach (var task in completedTasks)
-        {
-            completedTaskAmount += task.CompletePrice;
-        }
-
-        return assignedTaskFee - completedTaskAmount;
+        return revenue;
     }
 }

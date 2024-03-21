@@ -72,16 +72,8 @@ public class DbService
         await _auditLog.InsertOneAsync(newRecord);
     }
 
-    public async Task<List<TaskData>> GetAssignedTasksForPeriod(DateTime from, DateTime to)
+    public async Task<List<AuditRecord>> GetRecordsForPeriod(DateTime fromDate, DateTime toDate)
     {
-        return await _tasks.Find(data =>
-            data.Status == TaskStatus.Assigned && data.CreatedTime <= to && data.CreatedTime >= from).ToListAsync();
-    }
-
-    public async Task<List<TaskData>> GetCompletedTasksForPeriod(DateTime from, DateTime to)
-    {
-        return await _tasks.Find(data =>
-                data.Status == TaskStatus.Completed && data.CompletedTime <= to && data.CompletedTime >= from)
-            .ToListAsync();
+        return await _auditLog.Find(record => record.CreatedAt <= toDate && record.CreatedAt >= fromDate).ToListAsync();
     }
 }
