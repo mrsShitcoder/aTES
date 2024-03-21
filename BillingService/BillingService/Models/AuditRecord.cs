@@ -3,7 +3,8 @@ namespace BillingService.Models;
 public enum EventType
 {
     Credit = 1,
-    Withdrawal = 2
+    Withdrawal = 2,
+    Checkout = 3
 }
 
 public class AuditRecord

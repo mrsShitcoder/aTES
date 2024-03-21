@@ -60,14 +60,14 @@ public class DbService
         return await _tasks.UpdateOneAsync(data => data.Id == updatedData.Id, updater);
     }
 
-    public async Task<UpdateResult> UpdateAccountBalance(string accountId, int newBalance)
+    public async Task<UpdateResult> UpdateAccountBalanceAsync(string accountId, int newBalance)
     {
         var updater = Builders<Account>.Update.Set(account => account.Balance, newBalance);
 
         return await _accounts.UpdateOneAsync(account => account.AccountId == accountId, updater);
     }
 
-    public async Task UpdateAuditLog(AuditRecord newRecord)
+    public async Task UpdateAuditLogAsync(AuditRecord newRecord)
     {
         await _auditLog.InsertOneAsync(newRecord);
     }

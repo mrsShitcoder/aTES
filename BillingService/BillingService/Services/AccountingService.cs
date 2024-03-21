@@ -11,6 +11,8 @@ public class AccountingService
     private readonly DbService _dbService;
 
     private readonly KafkaProducer _kafkaProducer;
+    
+    private Timer _timer;
 
     public AccountingService(DbService dbService, KafkaProducer kafkaProducer, EventBus eventBus)
     {
@@ -20,6 +22,44 @@ public class AccountingService
         eventBus.Subscribe<TaskCreatedEvent>(OnTaskCreated);
         eventBus.Subscribe<TaskCompletedEvent>(OnTaskCompleted);
         eventBus.Subscribe<TaskReassignedEvent>(OnTaskReassigned);
+        InitTimer();
+    }
+
+    private void InitTimer()
+    {
+        var now = DateTime.Now;
+        var timeToMidnight = (TimeSpan.FromDays(1) - now.TimeOfDay).TotalMilliseconds;
+        _timer = new Timer(Checkout, null, (int)timeToMidnight, (int)TimeSpan.FromDays(1).TotalMilliseconds);
+    }
+
+    private void Checkout(object? state)
+    {
+        Task.Run(async () =>
+        {
+            var accounts = await _dbService.GetAccountsListAsync();
+            if (accounts == null)
+            {
+                return;
+            }
+
+            foreach (var account in accounts)
+            {
+                if (account.Balance < 0)
+                {
+                    continue;
+                }
+
+                await _dbService.UpdateAuditLogAsync(new AuditRecord
+                {
+                    AccountId = account.AccountId,
+                    Amount = account.Balance,
+                    CreatedAt = DateTime.Now,
+                    EventType = EventType.Checkout
+                });
+                
+                await _dbService.UpdateAccountBalanceAsync(account.AccountId, 0);
+            }
+        });
     }
 
     public async Task OnUserCreated(UserCreatedEvent consumedEvent)
@@ -58,8 +98,8 @@ public class AccountingService
         };
         
         await _dbService.AddTaskAsync(newTask);
-        await _dbService.UpdateAccountBalance(account.AccountId, account.Balance - assignPrice);
-        await _dbService.UpdateAuditLog(new AuditRecord
+        await _dbService.UpdateAccountBalanceAsync(account.AccountId, account.Balance - assignPrice);
+        await _dbService.UpdateAuditLogAsync(new AuditRecord
         {
             AccountId = account.AccountId,
             Amount = assignPrice,
@@ -98,9 +138,9 @@ public class AccountingService
 
         task.Status = TaskStatus.Completed;
         
-        await _dbService.UpdateAccountBalance(account.AccountId, account.Balance + task.CompletePrice);
+        await _dbService.UpdateAccountBalanceAsync(account.AccountId, account.Balance + task.CompletePrice);
         await _dbService.UpdateTaskAsync(task);
-        await _dbService.UpdateAuditLog(new AuditRecord
+        await _dbService.UpdateAuditLogAsync(new AuditRecord
         {
             AccountId = account.AccountId,
             Amount = task.CompletePrice,
@@ -125,8 +165,8 @@ public class AccountingService
             throw new Exception($"Task {consumedEvent.TaskId} not found");
         }
 
-        await _dbService.UpdateAccountBalance(account.AccountId, account.Balance - task.AssignPrice);
-        await _dbService.UpdateAuditLog(new AuditRecord
+        await _dbService.UpdateAccountBalanceAsync(account.AccountId, account.Balance - task.AssignPrice);
+        await _dbService.UpdateAuditLogAsync(new AuditRecord
         {
             AccountId = account.AccountId,
             Amount = task.AssignPrice,
