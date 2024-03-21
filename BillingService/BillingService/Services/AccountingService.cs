@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Analytics.Events;
 using BillingService.Events;
 using BillingService.Models;
 using MongoDB.Bson;
@@ -58,6 +59,15 @@ public class AccountingService
                 });
                 
                 await _dbService.UpdateAccountBalanceAsync(account.AccountId, 0);
+
+                await _kafkaProducer.ProduceAsync("account-events", JsonSerializer.Serialize(
+                    new AccountBalanceChangedEvent
+                    {
+                        AccountId = account.AccountId,
+                        BalanceDiff = 0,
+                        CreatedAt = DateTime.Now,
+                        CurrentBalance = 0
+                    }));
             }
         });
     }
@@ -99,6 +109,14 @@ public class AccountingService
         
         await _dbService.AddTaskAsync(newTask);
         await _dbService.UpdateAccountBalanceAsync(account.AccountId, account.Balance - assignPrice);
+        await _kafkaProducer.ProduceAsync("account-events", JsonSerializer.Serialize(
+            new AccountBalanceChangedEvent
+            {
+                AccountId = account.AccountId,
+                BalanceDiff = -assignPrice,
+                CreatedAt = DateTime.Now,
+                CurrentBalance = account.Balance - assignPrice
+            }));
         await _dbService.UpdateAuditLogAsync(new AuditRecord
         {
             AccountId = account.AccountId,
@@ -139,6 +157,13 @@ public class AccountingService
         task.Status = TaskStatus.Completed;
         
         await _dbService.UpdateAccountBalanceAsync(account.AccountId, account.Balance + task.CompletePrice);
+        await _kafkaProducer.ProduceAsync("account-events", JsonSerializer.Serialize(new AccountBalanceChangedEvent
+        {
+            AccountId = account.AccountId,
+            BalanceDiff = task.CompletePrice,
+            CreatedAt = DateTime.Now,
+            CurrentBalance = account.Balance + task.CompletePrice
+        }));
         await _dbService.UpdateTaskAsync(task);
         await _dbService.UpdateAuditLogAsync(new AuditRecord
         {

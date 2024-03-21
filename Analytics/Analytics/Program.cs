@@ -2,15 +2,15 @@ using System.Security.Claims;
 using Confluent.Kafka;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using BillingService;
-using BillingService.Services;
+using Analytics;
+using Analytics.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<DbService>();
 builder.Services.AddSingleton<EventBus>();
-builder.Services.AddSingleton<AccountingService>();
+builder.Services.AddSingleton<AnalyticsService>();
 
 var jwksClient = new KeyClient(new HttpClient());
 SecurityKey signingKey = await jwksClient.GetSigningKeyAsync();
@@ -57,8 +57,6 @@ builder.Services.AddAuthentication("jwt").AddJwtBearer("jwt", options =>
 
 string kafkaConnection = builder.Configuration.GetConnectionString("KafkaConnection");
 
-builder.Services.AddSingleton(new KafkaProducer(kafkaConnection));
-
 var consumerConfig = new ConsumerConfig
 {
     BootstrapServers = kafkaConnection,
@@ -75,6 +73,7 @@ builder.Services.AddSingleton(consumerConfig);
 builder.Services.AddHostedService<KafkaUserStreamConsumerService>();
 builder.Services.AddHostedService<KafkaTaskStreamConsumerService>();
 builder.Services.AddHostedService<KafkaTaskEventsConsumerService>();
+builder.Services.AddHostedService<KafkaAccountEventsConsumerService>();
 
 var app = builder.Build();
 
