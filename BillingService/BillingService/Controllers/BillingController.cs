@@ -9,6 +9,11 @@ namespace BillingService.Controllers;
 public class BillingController : Controller
 {
     private readonly AccountingService _accountingService;
+
+    public BillingController(AccountingService accountingService)
+    {
+        _accountingService = accountingService;
+    }
     
     [Route("billing/all")]
     [Authorize(Roles = "Manager, Admin")]

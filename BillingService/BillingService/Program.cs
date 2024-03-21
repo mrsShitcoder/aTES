@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<DbService>();
+builder.Services.AddSingleton<EventBus>();
+builder.Services.AddSingleton<AccountingService>();
 
 var jwksClient = new KeyClient(new HttpClient());
 SecurityKey signingKey = await jwksClient.GetSigningKeyAsync();

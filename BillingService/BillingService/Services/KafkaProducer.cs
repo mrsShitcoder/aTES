@@ -4,7 +4,7 @@ namespace BillingService.Services;
 
 public class KafkaProducer
 {
-    private string _bootstrapServers;
+    private readonly string _bootstrapServers;
 
     public KafkaProducer(string bootstrapServers)
     {

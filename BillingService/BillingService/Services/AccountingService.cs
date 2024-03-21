@@ -12,7 +12,7 @@ public class AccountingService
 
     private readonly KafkaProducer _kafkaProducer;
     
-    private Timer _timer;
+    private Timer? _timer;
 
     public AccountingService(DbService dbService, KafkaProducer kafkaProducer, EventBus eventBus)
     {

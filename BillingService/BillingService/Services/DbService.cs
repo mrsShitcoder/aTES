@@ -2,16 +2,14 @@ using BillingService.Models;
 using BillingService.Settings;
 using MongoDB.Driver;
 
-using TaskStatus = BillingService.Models.TaskStatus;
-
 namespace BillingService.Services;
 
 public class DbService
 {
-    private IMongoCollection<Account> _accounts;
-    private IMongoCollection<TaskData> _tasks;
-    private IMongoCollection<AuditRecord> _auditLog;
-    private MongoClient _mongoClient;
+    private readonly IMongoCollection<Account> _accounts;
+    private readonly IMongoCollection<TaskData> _tasks;
+    private readonly IMongoCollection<AuditRecord> _auditLog;
+    private readonly MongoClient _mongoClient;
 
     public DbService(IConfiguration config)
     {
